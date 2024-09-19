@@ -233,12 +233,19 @@ namespace TGC.MonoGame.TP
         {
             for (int i = 0; i < 100; i++)
             {
+                // posición
                 float x = (float) rnd.NextDouble() * 200f - 100f;
                 float y = 0;
                 float z = (float) rnd.NextDouble() * 200f - 100f;
+
+                // escala
+                float height = (float)rnd.NextDouble() * 0.4f + 0.8f;
+                float width = (float)rnd.NextDouble() * 0.4f + 0.8f;
+
+                // rotación
                 float rot = (float)rnd.NextDouble() * MathHelper.TwoPi;
 
-                Tree t = new Tree(new Vector3(x,y,z),rot);
+                Tree t = new Tree(new Vector3(x,y,z), new Vector3(width, height, width), rot);
                 Trees.Add(t);
                 
             }

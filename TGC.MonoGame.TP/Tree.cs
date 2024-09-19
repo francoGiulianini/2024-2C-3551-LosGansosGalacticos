@@ -13,14 +13,16 @@ namespace TGC.MonoGame.TP
 
         private Matrix _world;
         private Vector3 _position;
+        private Vector3 _scale;
         private float _yaw;
         private Vector3 _defaultColor;
 
-        public Tree(Vector3 position, float yaw)
+        public Tree(Vector3 position, Vector3 scale, float yaw)
         {
             _position = position;
+            _scale = scale;
             _yaw = yaw;
-            _world = Matrix.CreateRotationX(-MathHelper.PiOver2) * Matrix.CreateRotationY(yaw) * Matrix.CreateTranslation(position);
+            _world =Matrix.CreateScale(scale) *  Matrix.CreateRotationX(-MathHelper.PiOver2) * Matrix.CreateRotationY(yaw) * Matrix.CreateTranslation(position);
 
             _defaultColor = GetDefaultColor();
         }
