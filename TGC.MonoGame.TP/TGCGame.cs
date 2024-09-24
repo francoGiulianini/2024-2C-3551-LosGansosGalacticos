@@ -59,6 +59,8 @@ namespace TGC.MonoGame.TP
         // terreno
         private QuadPrimitive Terrain;
         private List<Tree> Trees;
+        private List<Rock> Rocks;
+        private List<Bush> Bushes;
 
         /// <summary>
         ///     Se llama una sola vez, al principio cuando se ejecuta el ejemplo.
@@ -77,6 +79,9 @@ namespace TGC.MonoGame.TP
             World = Matrix.CreateTranslation(Position);
 
             Trees = new List<Tree>();
+            Rocks = new List<Rock>();
+            Bushes = new List<Bush>();
+
             Random rnd = new Random();
 
             base.Initialize();
@@ -99,36 +104,48 @@ namespace TGC.MonoGame.TP
             // Cargo el tanque
             // TODO mover esto a su clase
             Model = Content.Load<Model>(ContentFolder3D + "tank/tank");
-            // Asigno el efecto que cargue a cada parte del mesh.
-            // Un modelo puede tener mas de 1 mesh internamente.
-            foreach (var mesh in Model.Meshes)
-            {
-                // Un mesh puede tener mas de 1 mesh part (cada 1 puede tener su propio efecto).
-                foreach (var meshPart in mesh.MeshParts)
-                {
-                    meshPart.Effect = Effect;
-                }
-            }
+            ApplyEffect(Model, Effect);
+
+            // TODO mover esto a su clase
 
             // Cargo el árbol
-            // TODO mover esto a su clase
             Tree.Model = Content.Load<Model>(ContentFolder3D + "tree/tree");
+            ApplyEffect(Tree.Model, Effect);
             Tree.Random = rnd;
-            // Asigno el efecto que cargue a cada parte del mesh.
-            // Un modelo puede tener mas de 1 mesh internamente.
-            foreach (var mesh in Tree.Model.Meshes)
-            {
-                // Un mesh puede tener mas de 1 mesh part (cada 1 puede tener su propio efecto).
-                foreach (var meshPart in mesh.MeshParts)
-                {
-                    meshPart.Effect = Effect;
-                }
-            }
+
+            // Cargo la roca
+            Rock.Model = Content.Load<Model>(ContentFolder3D + "rock/Rock1");
+            ApplyEffect(Rock.Model, Effect);
+            Rock.Random = rnd;
+
+            // Cargo el arbusto
+            Bush.Model = Content.Load<Model>(ContentFolder3D + "bush/Bush1");
+            ApplyEffect(Bush.Model, Effect);
+            Bush.Random = rnd;
+
+
 
             LoadTrees();
+            LoadRocks();
+            LoadBushes();
 
             base.LoadContent();
         }
+
+        private void ApplyEffect(Model model, Effect effect)
+        {
+            // Asigno el efecto que cargue a cada parte del mesh.
+            // Un modelo puede tener mas de 1 mesh internamente.
+            foreach (var mesh in model.Meshes)
+            {
+                // Un mesh puede tener mas de 1 mesh part (cada 1 puede tener su propio efecto).
+                foreach (var meshPart in mesh.MeshParts)
+                {
+                    meshPart.Effect = Effect;
+                }
+            }
+        }
+
 
         /// <summary>
         ///     Se llama en cada frame.
@@ -191,7 +208,7 @@ namespace TGC.MonoGame.TP
         protected override void Draw(GameTime gameTime)
         {
             // Aca deberiamos poner toda la logia de renderizado del juego.
-            GraphicsDevice.Clear(Color.Black);
+            GraphicsDevice.Clear(new Color(0.529f, 0.808f, 0.922f));
 
             // terreno
             Terrain.Draw(Camera.View, Camera.Projection, Effect, new Vector3(0.50f, 1.00f, 0.00f));
@@ -201,6 +218,16 @@ namespace TGC.MonoGame.TP
             foreach (Tree t in Trees)
             {
                 t.Draw(Camera.View, Camera.Projection, Effect);
+            }
+            // rocas
+            foreach (Rock r in Rocks)
+            {
+                r.Draw(Camera.View, Camera.Projection, Effect);
+            }
+            // arbustos
+            foreach (Bush b in Bushes)
+            {
+                b.Draw(Camera.View, Camera.Projection, Effect);
             }
 
 
@@ -250,7 +277,50 @@ namespace TGC.MonoGame.TP
                 
             }
         }
-        
+        private void LoadRocks()
+        {
+            for (int i = 0; i < 20; i++)
+            {
+                // posición
+                float x = (float)rnd.NextDouble() * 200f - 100f;
+                float y = 0;
+                float z = (float)rnd.NextDouble() * 200f - 100f;
+
+                // escala
+                float height = (float)rnd.NextDouble() * 0.5f + 0.5f;
+                float width = (float)rnd.NextDouble() * 0.5f + 0.5f;
+
+                // rotación
+                float rot = (float)rnd.NextDouble() * MathHelper.TwoPi;
+
+                Rock r = new Rock(new Vector3(x, y, z), new Vector3(width, height, width), rot);
+                Rocks.Add(r);
+
+            }
+        }
+
+        private void LoadBushes()
+        {
+            for (int i = 0; i < 50; i++)
+            {
+                // posición
+                float x = (float)rnd.NextDouble() * 200f - 100f;
+                float y = 0;
+                float z = (float)rnd.NextDouble() * 200f - 100f;
+
+                // escala
+                float height = (float)rnd.NextDouble() * 0.5f + 1f;
+                float width = (float)rnd.NextDouble() * 0.5f + 1f;
+
+                // rotación
+                float rot = (float)rnd.NextDouble() * MathHelper.TwoPi;
+
+                Bush b = new Bush(new Vector3(x, y, z), new Vector3(width, height, width), rot);
+                Bushes.Add(b);
+
+            }
+        }
+
 
     }
 }
