@@ -1,65 +1,52 @@
-﻿using BepuPhysics.Constraints;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
-using TGC.MonoGame.TP.Cameras;
 
 namespace TGC.MonoGame.TP
 {
-    internal class Tree
+    internal class Tree : BasicObject
     {
-        public static Model Model;
-        public static Random Random;
 
-        private Matrix _world;
-        private Vector3 _position;
-        private Vector3 _scale;
-        private float _yaw;
-        private Vector3 _defaultColor;
-
-        public Tree(Vector3 position, Vector3 scale, float yaw)
+        public Tree(Vector3 position, ModelManager modelManager) : base(position)
         {
-            _position = position;
-            _scale = scale;
-            _yaw = yaw;
-            _world =Matrix.CreateScale(scale) *  Matrix.CreateRotationX(-MathHelper.PiOver2) * Matrix.CreateRotationY(yaw) * Matrix.CreateTranslation(position);
-
-            _defaultColor = GetDefaultColor();
+            model = modelManager.Tree;
         }
 
-        public void LoadContent()
+        public override bool Intersects(BasicObject obj)
         {
-            // TODO cargar modelo del árbol
+            throw new NotImplementedException();
         }
 
-        protected void Update(GameTime gameTime)
+        public override void LoadContent()
         {
-            // ¿¿??
+            throw new NotImplementedException();
         }
 
-        public void Draw(Matrix view, Matrix projection, Effect effect)
+        public override void Update(GameTime gameTime)
         {
-            effect.Parameters["View"].SetValue(view);
-            effect.Parameters["Projection"].SetValue(projection);
-            effect.Parameters["DiffuseColor"].SetValue(_defaultColor);
-
-            foreach (var mesh in Model.Meshes)
-            {
-                effect.Parameters["World"].SetValue(mesh.ParentBone.Transform * _world);
-                mesh.Draw();
-            }
+            throw new NotImplementedException();
         }
 
-        public Vector3 GetDefaultColor()
+        protected override Vector3 GetRandomScale()
         {
-            float r = (float)(Random.NextDouble() * 0.2f) + 0.2f;
-            float g = (float)(Random.NextDouble() * 0.2f) + 0.8f;
-            float b = (float)(Random.NextDouble() * 0.5f);
-
-            return new Vector3(r, g, b);
+            float height = (float) Random.NextDouble() * 0.4f + 0.8f;
+            float width = (float) Random.NextDouble() * 0.4f + 0.8f;
+            return new Vector3(width, height, width);
         }
 
+        protected override Quaternion GetRandomRotation()
+        {
+            float pitch = -MathHelper.PiOver2;
+            float yaw = (float)Random.NextDouble() * MathHelper.TwoPi;
+            return Quaternion.CreateFromYawPitchRoll(yaw, pitch, 0f);
+        }
 
-
+        protected override Vector3 GetRandomColor()
+        {
+            float red = (float) Random.NextDouble() * 0.2f + 0.2f;
+            float green = (float) Random.NextDouble() * 0.2f + 0.8f;
+            float blue = (float) Random.NextDouble() * 0.5f;
+            return new Vector3(red, green, blue);
+        }
     }
 }

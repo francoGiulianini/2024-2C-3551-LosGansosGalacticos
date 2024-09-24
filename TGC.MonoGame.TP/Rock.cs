@@ -1,62 +1,49 @@
-﻿using BepuPhysics.Constraints;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
-using TGC.MonoGame.TP.Cameras;
 
 namespace TGC.MonoGame.TP
 {
-    internal class Rock
+    internal class Rock : BasicObject
     {
-        public static Model Model;
-        public static Random Random;
 
-        private Matrix _world;
-        private Vector3 _position;
-        private Vector3 _scale;
-        private float _yaw;
-        private Vector3 _defaultColor;
-
-        public Rock(Vector3 position, Vector3 scale, float yaw)
+        public Rock(Vector3 position, ModelManager modelManager) : base(position)
         {
-            _position = position;
-            _scale = scale;
-            _yaw = yaw;
-            _world =Matrix.CreateScale(scale) *  Matrix.CreateRotationY(yaw) * Matrix.CreateTranslation(position);
-
-            _defaultColor = GetDefaultColor();
+            model = modelManager.Rock;
         }
 
-        public void LoadContent()
+        public override bool Intersects(BasicObject obj)
         {
-            // TODO cargar modelo
+            throw new NotImplementedException();
         }
 
-        protected void Update(GameTime gameTime)
+        public override void LoadContent()
         {
-            // ¿¿??
+            throw new NotImplementedException();
         }
 
-        public void Draw(Matrix view, Matrix projection, Effect effect)
+        public override void Update(GameTime gameTime)
         {
-            effect.Parameters["View"].SetValue(view);
-            effect.Parameters["Projection"].SetValue(projection);
-            effect.Parameters["DiffuseColor"].SetValue(_defaultColor);
-
-            foreach (var mesh in Model.Meshes)
-            {
-                effect.Parameters["World"].SetValue(mesh.ParentBone.Transform * _world);
-                mesh.Draw();
-            }
+            throw new NotImplementedException();
         }
 
-        public Vector3 GetDefaultColor()
+        protected override Vector3 GetRandomScale()
         {
-            float rgb = (float)(Random.NextDouble() * 0.5f) + 0.25f;
-            return new Vector3(rgb, rgb, rgb);
+            float height = (float) Random.NextDouble() * 0.5f + 0.5f;
+            float width = (float) Random.NextDouble() * 0.5f + 0.5f;
+            return new Vector3(width, height, width);
         }
 
+        protected override Quaternion GetRandomRotation()
+        {
+            float yaw = (float) Random.NextDouble() * MathHelper.TwoPi;
+            return Quaternion.CreateFromYawPitchRoll(yaw, 0f, 0f);
+        }
 
-
+        protected override Vector3 GetRandomColor()
+        {
+            float gray = (float) Random.NextDouble() * 0.5f + 0.25f;
+            return new Vector3(gray, gray, gray);
+        }
     }
 }

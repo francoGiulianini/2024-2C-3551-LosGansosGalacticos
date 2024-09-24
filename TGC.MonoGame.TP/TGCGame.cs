@@ -42,7 +42,8 @@ namespace TGC.MonoGame.TP
 
         private GraphicsDeviceManager Graphics { get; }
         private SpriteBatch SpriteBatch { get; set; }
-        private Effect Effect { get; set; }
+
+
         private Random rnd = new Random();
 
         private TargetCamera Camera { get; set; }
@@ -51,16 +52,19 @@ namespace TGC.MonoGame.TP
 
 
         // TODO crear clase para tanque jugador
+        private ModelManager ModelMgr;
+        private Effect Effect;
         private Model Model { get; set; }
         private float Rotation { get; set; }
         private Vector3 Position { get; set; }
         private Matrix World { get; set; }
 
+
+
+
         // terreno
         private QuadPrimitive Terrain;
-        private List<Tree> Trees;
-        private List<Rock> Rocks;
-        private List<Bush> Bushes;
+        private List<BasicObject> StageObjects;
 
         /// <summary>
         ///     Se llama una sola vez, al principio cuando se ejecuta el ejemplo.
@@ -78,10 +82,7 @@ namespace TGC.MonoGame.TP
             Position = new Vector3(0f, 2f, 0f); // TODO posición inicial tanque
             World = Matrix.CreateTranslation(Position);
 
-            Trees = new List<Tree>();
-            Rocks = new List<Rock>();
-            Bushes = new List<Bush>();
-
+            StageObjects = new List<BasicObject>();
             Random rnd = new Random();
 
             base.Initialize();
@@ -97,54 +98,16 @@ namespace TGC.MonoGame.TP
             // Aca es donde deberiamos cargar todos los contenido necesarios antes de iniciar el juego.
             SpriteBatch = new SpriteBatch(GraphicsDevice);
 
-            // Cargo un efecto basico propio declarado en el Content pipeline.
-            // En el juego no pueden usar BasicEffect de MG, deben usar siempre efectos propios.
-            Effect = Content.Load<Effect>(ContentFolderEffects + "BasicShader");
+            // cargar modelos
+            ModelMgr = new ModelManager(Content, ContentFolder3D, ContentFolderEffects);
+            Effect = ModelMgr.BasicShader;
+            Model = ModelMgr.Steamroller;
 
-            // Cargo el tanque
-            // TODO mover esto a su clase
-            Model = Content.Load<Model>(ContentFolder3D + "tank/tank");
-            ApplyEffect(Model, Effect);
-
-            // TODO mover esto a su clase
-
-            // Cargo el árbol
-            Tree.Model = Content.Load<Model>(ContentFolder3D + "tree/tree");
-            ApplyEffect(Tree.Model, Effect);
-            Tree.Random = rnd;
-
-            // Cargo la roca
-            Rock.Model = Content.Load<Model>(ContentFolder3D + "rock/Rock1");
-            ApplyEffect(Rock.Model, Effect);
-            Rock.Random = rnd;
-
-            // Cargo el arbusto
-            Bush.Model = Content.Load<Model>(ContentFolder3D + "bush/Bush1");
-            ApplyEffect(Bush.Model, Effect);
-            Bush.Random = rnd;
-
-
-
-            LoadTrees();
-            LoadRocks();
-            LoadBushes();
+            LoadStageObjects();
 
             base.LoadContent();
         }
 
-        private void ApplyEffect(Model model, Effect effect)
-        {
-            // Asigno el efecto que cargue a cada parte del mesh.
-            // Un modelo puede tener mas de 1 mesh internamente.
-            foreach (var mesh in model.Meshes)
-            {
-                // Un mesh puede tener mas de 1 mesh part (cada 1 puede tener su propio efecto).
-                foreach (var meshPart in mesh.MeshParts)
-                {
-                    meshPart.Effect = Effect;
-                }
-            }
-        }
 
 
         /// <summary>
@@ -214,22 +177,11 @@ namespace TGC.MonoGame.TP
             Terrain.Draw(Camera.View, Camera.Projection, Effect, new Vector3(0.50f, 1.00f, 0.00f));
 
 
-            // árboles
-            foreach (Tree t in Trees)
+            // objetos del escenario
+            foreach (BasicObject obj in StageObjects)
             {
-                t.Draw(Camera.View, Camera.Projection, Effect);
+                obj.Draw(Camera.View, Camera.Projection, Effect);
             }
-            // rocas
-            foreach (Rock r in Rocks)
-            {
-                r.Draw(Camera.View, Camera.Projection, Effect);
-            }
-            // arbustos
-            foreach (Bush b in Bushes)
-            {
-                b.Draw(Camera.View, Camera.Projection, Effect);
-            }
-
 
             // tanque
             // Para dibujar le modelo necesitamos pasarle informacion que el efecto esta esperando.
@@ -256,71 +208,34 @@ namespace TGC.MonoGame.TP
             base.UnloadContent();
         }
 
-        private void LoadTrees()
+        private void LoadStageObjects()
         {
+            // árboles
             for (int i = 0; i < 100; i++)
             {
-                // posición
-                float x = (float) rnd.NextDouble() * 200f - 100f;
-                float y = 0;
-                float z = (float) rnd.NextDouble() * 200f - 100f;
-
-                // escala
-                float height = (float)rnd.NextDouble() * 0.4f + 0.8f;
-                float width = (float)rnd.NextDouble() * 0.4f + 0.8f;
-
-                // rotación
-                float rot = (float)rnd.NextDouble() * MathHelper.TwoPi;
-
-                Tree t = new Tree(new Vector3(x,y,z), new Vector3(width, height, width), rot);
-                Trees.Add(t);
-                
+                StageObjects.Add(new Tree(GetRandomPostion(), ModelMgr));
             }
-        }
-        private void LoadRocks()
-        {
-            for (int i = 0; i < 20; i++)
-            {
-                // posición
-                float x = (float)rnd.NextDouble() * 200f - 100f;
-                float y = 0;
-                float z = (float)rnd.NextDouble() * 200f - 100f;
-
-                // escala
-                float height = (float)rnd.NextDouble() * 0.5f + 0.5f;
-                float width = (float)rnd.NextDouble() * 0.5f + 0.5f;
-
-                // rotación
-                float rot = (float)rnd.NextDouble() * MathHelper.TwoPi;
-
-                Rock r = new Rock(new Vector3(x, y, z), new Vector3(width, height, width), rot);
-                Rocks.Add(r);
-
-            }
-        }
-
-        private void LoadBushes()
-        {
+            // arbustos
             for (int i = 0; i < 50; i++)
             {
-                // posición
-                float x = (float)rnd.NextDouble() * 200f - 100f;
-                float y = 0;
-                float z = (float)rnd.NextDouble() * 200f - 100f;
-
-                // escala
-                float height = (float)rnd.NextDouble() * 0.5f + 1f;
-                float width = (float)rnd.NextDouble() * 0.5f + 1f;
-
-                // rotación
-                float rot = (float)rnd.NextDouble() * MathHelper.TwoPi;
-
-                Bush b = new Bush(new Vector3(x, y, z), new Vector3(width, height, width), rot);
-                Bushes.Add(b);
-
+                StageObjects.Add(new Bush(GetRandomPostion(), ModelMgr));
             }
+            // rocas
+            for (int i = 0; i < 20; i++)
+            {
+                StageObjects.Add(new Rock(GetRandomPostion(), ModelMgr));
+            }
+
         }
 
+        private Vector3 GetRandomPostion()
+        {
+            // posición
+            float x = (float)rnd.NextDouble() * 200f - 100f;
+            float y = 0;
+            float z = (float)rnd.NextDouble() * 200f - 100f;
+            return new Vector3(x, y, z);
+        }
 
     }
 }
