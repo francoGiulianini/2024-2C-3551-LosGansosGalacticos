@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using TGC.MonoGame.TP.Cameras;
 using TGC.MonoGame.TP.Geometries.Textures;
+using TGC.MonoGame.TP.Tank;
 
 namespace TGC.MonoGame.TP
 {
@@ -41,6 +42,7 @@ namespace TGC.MonoGame.TP
         }
 
         private GraphicsDeviceManager Graphics { get; }
+        private Point ScreenCenter;
         private SpriteBatch SpriteBatch { get; set; }
         private Effect Effect { get; set; }
         private Random rnd = new Random();
@@ -52,9 +54,14 @@ namespace TGC.MonoGame.TP
 
         // TODO crear clase para tanque jugador
         private Model Model { get; set; }
+        private Steamroller Tank; 
         private float Rotation { get; set; }
         private Vector3 Position { get; set; }
         private Matrix World { get; set; }
+        private float Velocidad = 0f;
+        private const float VelocidadIncremento = 0.5f;
+        private const float VelocidadMaxima = 12;
+        private const float Rozamiento = 0.05f;
 
         // terreno
         private QuadPrimitive Terrain;
@@ -66,6 +73,9 @@ namespace TGC.MonoGame.TP
         /// </summary>
         protected override void Initialize()
         {
+            ScreenCenter = new Point(GraphicsDevice.Viewport.Width / 2, GraphicsDevice.Viewport.Height / 2);
+            Mouse.SetPosition(ScreenCenter.X, ScreenCenter.Y);
+
             // La logica de inicializacion que no depende del contenido se recomienda poner en este metodo.
             Terrain = new QuadPrimitive(Graphics.GraphicsDevice);
 
@@ -73,7 +83,8 @@ namespace TGC.MonoGame.TP
             Camera.Projection = Matrix.CreatePerspectiveFieldOfView(MathHelper.PiOver4, GraphicsDevice.Viewport.AspectRatio, CameraNearPlaneDistance, CameraFarPlaneDistance);
 
             // Configuramos nuestras matrices de la escena.
-            Position = new Vector3(0f, 2f, 0f); // TODO posición inicial tanque
+            Position = new Vector3(0f, 0f, 0f); // TODO posición inicial tanque
+            Rotation = 0;
             World = Matrix.CreateTranslation(Position);
 
             Trees = new List<Tree>();
@@ -99,31 +110,15 @@ namespace TGC.MonoGame.TP
             // Cargo el tanque
             // TODO mover esto a su clase
             Model = Content.Load<Model>(ContentFolder3D + "tank/tank");
-            // Asigno el efecto que cargue a cada parte del mesh.
-            // Un modelo puede tener mas de 1 mesh internamente.
-            foreach (var mesh in Model.Meshes)
-            {
-                // Un mesh puede tener mas de 1 mesh part (cada 1 puede tener su propio efecto).
-                foreach (var meshPart in mesh.MeshParts)
-                {
-                    meshPart.Effect = Effect;
-                }
-            }
+            ApplyEffect(Model, Effect);
+            Tank = new Steamroller();
+            Tank.Load(Model);
 
             // Cargo el árbol
             // TODO mover esto a su clase
             Tree.Model = Content.Load<Model>(ContentFolder3D + "tree/tree");
             Tree.Random = rnd;
-            // Asigno el efecto que cargue a cada parte del mesh.
-            // Un modelo puede tener mas de 1 mesh internamente.
-            foreach (var mesh in Tree.Model.Meshes)
-            {
-                // Un mesh puede tener mas de 1 mesh part (cada 1 puede tener su propio efecto).
-                foreach (var meshPart in mesh.MeshParts)
-                {
-                    meshPart.Effect = Effect;
-                }
-            }
+            ApplyEffect(Tree.Model, Effect);
 
             LoadTrees();
 
@@ -148,36 +143,74 @@ namespace TGC.MonoGame.TP
                 Exit();
             }
 
-            float direction = 0f;
-            
-            // TODO revisar dirección rotación y avance/retroceso
+            // rozamiento
+            if (Velocidad > 0)
+            {
+                Velocidad = MathHelper.Clamp(Velocidad - Rozamiento, 0, VelocidadMaxima);
+            }
+            else if (Velocidad < 0)
+            {
+                Velocidad = MathHelper.Clamp(Velocidad + Rozamiento, -VelocidadMaxima, 0);
+            }
+
+            // dirección rotación
             if ((keyboardState.IsKeyDown(Keys.Right) || keyboardState.IsKeyDown(Keys.D)))
             {
                 Rotation -= elapsedTime;
+                Tank.SteerRotation -= elapsedTime;
             }
             else if ((keyboardState.IsKeyDown(Keys.Left) || keyboardState.IsKeyDown(Keys.A)))
             {
                 Rotation += elapsedTime;
+                Tank.SteerRotation += elapsedTime;
             }
-            else if (keyboardState.IsKeyDown(Keys.Up) || keyboardState.IsKeyDown(Keys.W))
+
+            // avance/retroceso
+            if (keyboardState.IsKeyDown(Keys.Up) || keyboardState.IsKeyDown(Keys.W))
             {
-                direction = elapsedTime;
+                Velocidad = MathHelper.Clamp(Velocidad + VelocidadIncremento, -VelocidadMaxima, VelocidadMaxima);
             }
             else if (keyboardState.IsKeyDown(Keys.Down) || keyboardState.IsKeyDown(Keys.S))
             {
-                direction = -elapsedTime;
+                Velocidad = MathHelper.Clamp(Velocidad - VelocidadIncremento, -VelocidadMaxima, VelocidadMaxima);
             }
 
+            // torreta y cañon
+            var mouseState = Mouse.GetState();
+            Vector2 mousePosition = mouseState.Position.ToVector2();
+            if (mousePosition.X < ScreenCenter.X * 0.667f)
+            {
+                Tank.TurretRotation -= elapsedTime;
+            }
+            else if (mousePosition.X > ScreenCenter.X * 1.334f)
+            {
+                Tank.TurretRotation += elapsedTime;
+            }
+
+            if (mousePosition.Y < ScreenCenter.Y * 0.667f)
+            {
+                Tank.CannonRotation += elapsedTime;
+            }
+            else if (mousePosition.Y > ScreenCenter.Y * 1.334f)
+            {
+                Tank.CannonRotation -= elapsedTime;
+            }
 
             Matrix RotationMatrix = Matrix.CreateRotationY(Rotation);
-            Vector3 movement = direction * RotationMatrix.Forward * 25;  // TODO definir velocidad
+            Matrix CameraRotationMatrix = Matrix.CreateFromYawPitchRoll(Rotation + Tank.TurretRotation, -Tank.CannonRotation, 0f);
+
+            Vector3 movement = RotationMatrix.Forward * Velocidad * elapsedTime;
             Position = Position + movement;
-            World = Matrix.CreateScale(0.01f) * Matrix.CreateRotationY(Rotation) * Matrix.CreateTranslation(Position); // TODO definir escala tanque
+            World = Matrix.CreateScale(0.01f) * Matrix.CreateRotationY(Rotation + MathHelper.Pi)  * Matrix.CreateTranslation(Position); // TODO definir escala tanque
+
+            Tank.WheelRotation += (Velocidad * elapsedTime / 8f); // TODO revisar esta fórmula
+
+
 
             Terrain.World = Matrix.Identity * Matrix.CreateScale(100f); // TODO definir escala terreno
 
-            Camera.TargetPosition = Position + RotationMatrix.Forward * 10; // TODO revisar posición objetivo 
-            Camera.Position = Position + RotationMatrix.Backward * 20 + Vector3.UnitY * 10; // TODO revisar posición cámara
+            Camera.TargetPosition = Position + CameraRotationMatrix.Forward * 50; // TODO revisar posición objetivo 
+            Camera.Position = Position + CameraRotationMatrix.Backward * 20 + Vector3.UnitY * 12; // TODO revisar posición cámara
             Camera.BuildView();
 
 
@@ -203,19 +236,7 @@ namespace TGC.MonoGame.TP
                 t.Draw(Camera.View, Camera.Projection, Effect);
             }
 
-
-            // tanque
-            // Para dibujar le modelo necesitamos pasarle informacion que el efecto esta esperando.
-            Effect.Parameters["View"].SetValue(Camera.View);
-            Effect.Parameters["Projection"].SetValue(Camera.Projection);
-            Effect.Parameters["DiffuseColor"].SetValue(new Vector3(0.33f,0.33f,0.20f));
-
-            foreach (var mesh in Model.Meshes)
-            {
-                Effect.Parameters["World"].SetValue(mesh.ParentBone.Transform * World);
-                mesh.Draw();
-            }
-
+            Tank.Draw(World, Camera.View, Camera.Projection, Effect);
         }
 
         /// <summary>
@@ -243,7 +264,21 @@ namespace TGC.MonoGame.TP
                 
             }
         }
-        
+
+        private void ApplyEffect(Model model, Effect effect)
+        {
+            // Asigno el efecto que cargue a cada parte del mesh.
+            // Un modelo puede tener mas de 1 mesh internamente.
+            foreach (var mesh in model.Meshes)
+            {
+                // Un mesh puede tener mas de 1 mesh part (cada 1 puede tener su propio efecto).
+                foreach (var meshPart in mesh.MeshParts)
+                {
+                    meshPart.Effect = effect;
+                }
+            }
+        }
+
 
     }
 }
