@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using System;
+using System.Diagnostics;
 
 namespace TGC.MonoGame.TP
 {
@@ -13,6 +14,20 @@ namespace TGC.MonoGame.TP
         {
             _world = Matrix.CreateTranslation(new Vector3(10.194115f, -0.923026f, -1.0564915f)) * Matrix.CreateScale(scale) * Matrix.CreateRotationY(yaw) * Matrix.CreateTranslation(position);
             _defaultColors = GetDefaultColors(Model.Meshes.Count);
+
+
+            Model.Root.Transform = _world;
+
+            Stopwatch sw = Stopwatch.StartNew();
+            _boundingBoxCalc = Collisions.BoundingVolumesExtensions.CreateAABBFrom(Model);
+            sw.Stop();
+            Debug.WriteLine("r._boundingBoxCalc: {0} milliseconds", sw.ElapsedMilliseconds);
+
+            sw.Restart();
+            _boundingCylinderCalc = Collisions.BoundingVolumesExtensions.CreateCylinderFrom(Model);
+            sw.Stop();
+            Debug.WriteLine("r._boundingCylinderCalc: {0} milliseconds", sw.ElapsedMilliseconds);
+
         }
 
         public static void LoadContent(ContentManager Content, Effect Effect)
@@ -51,10 +66,15 @@ namespace TGC.MonoGame.TP
             effect.Parameters["View"].SetValue(view);
             effect.Parameters["Projection"].SetValue(projection);
 
+            Model.Root.Transform = _world;
+            var modelMeshesBaseTransforms = new Matrix[Model.Bones.Count];
+            Model.CopyAbsoluteBoneTransformsTo(modelMeshesBaseTransforms);
+
             for (int i = 0; i < Model.Meshes.Count; i++)
             {
+                var relativeTransform = modelMeshesBaseTransforms[Model.Meshes[i].ParentBone.Index];
+                effect.Parameters["World"].SetValue(relativeTransform);
                 effect.Parameters["DiffuseColor"].SetValue(_defaultColors[i]);
-                effect.Parameters["World"].SetValue(Model.Meshes[i].ParentBone.Transform * _world);
                 Model.Meshes[i].Draw();
             }
         }

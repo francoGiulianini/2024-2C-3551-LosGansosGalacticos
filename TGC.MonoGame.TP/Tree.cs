@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using System;
+using System.Diagnostics;
 
 namespace TGC.MonoGame.TP
 {
@@ -13,6 +14,19 @@ namespace TGC.MonoGame.TP
         {
             _world = Matrix.CreateRotationX(-MathHelper.PiOver2) * Matrix.CreateScale(scale) * Matrix.CreateRotationY(yaw) * Matrix.CreateTranslation(position);
             _defaultColors = GetDefaultColors(Model.Meshes.Count);
+
+
+            Model.Root.Transform = _world;
+
+            Stopwatch sw = Stopwatch.StartNew();
+            _boundingBoxCalc = Collisions.BoundingVolumesExtensions.CreateAABBFrom(Model);
+            sw.Stop();
+            Debug.WriteLine("t._boundingBoxCalc: {0} milliseconds", sw.ElapsedMilliseconds);
+
+            sw.Restart();
+            _boundingCylinderCalc = Collisions.BoundingVolumesExtensions.CreateCylinderFrom(Model);
+            sw.Stop();
+            Debug.WriteLine("t._boundingCylinderCalc: {0} milliseconds", sw.ElapsedMilliseconds);
         }
 
         public static void LoadContent(ContentManager Content, Effect Effect)

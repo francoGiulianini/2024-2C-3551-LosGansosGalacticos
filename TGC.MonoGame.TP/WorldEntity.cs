@@ -1,14 +1,25 @@
 using System;
+using System.Diagnostics;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
+using TGC.MonoGame.TP.Collisions;
+
 
 namespace TGC.MonoGame.TP {
     public class WorldEntity {
         private const string ContentFolder3D = "Models/";
         public static Random Random;
         protected Vector3 _position;
+
         protected BoundingBox _boundingBox;
+
+        // distintos bounding volumes para comparar
+        protected BoundingBox _boundingBoxPrecalc;
+        protected BoundingBox _boundingBoxCalc;
+        protected BoundingCylinder _boundingCylinderPrecalc;
+        protected BoundingCylinder _boundingCylinderCalc;
+
         protected Vector3[] _defaultColors;
         protected Matrix _world;
         protected Vector3 _scale;
@@ -20,9 +31,21 @@ namespace TGC.MonoGame.TP {
             _scale = scale;
             _yaw = yaw;
 
-            BoundingBoxLocalCoordinates localBox = GetLocalBoundingBox(model);
-            _boundingBox.Min = position + (localBox.ObjectPositionToBoxCenter - localBox.Distance) * scale;
-            _boundingBox.Max = position + (localBox.ObjectPositionToBoxCenter + localBox.Distance) * scale;
+            BoundingBoxLocalCoordinates localBox;
+
+            Stopwatch sw = Stopwatch.StartNew();
+            localBox = GetLocalBoundingBox(model);
+            _boundingBoxPrecalc.Min = position + (localBox.ObjectPositionToBoxCenter - localBox.Distance) * scale;
+            _boundingBoxPrecalc.Max = position + (localBox.ObjectPositionToBoxCenter + localBox.Distance) * scale;
+            sw.Stop();
+            Debug.WriteLine("_boundingBoxPrecalc: {0} milliseconds", sw.ElapsedMilliseconds);
+
+            sw.Restart();
+            localBox = GetLocalBoundingBox(model);
+            _boundingCylinderPrecalc = new BoundingCylinder(position + localBox.ObjectPositionToBoxCenter * scale, localBox.Distance.X * scale.X, localBox.Distance.Y * scale.Y);
+            sw.Stop();
+            Debug.WriteLine("_boundingCylinderPrecalc: {0} milliseconds", sw.ElapsedMilliseconds);
+
         }
 
         public Vector3 GetPosition() {
@@ -51,8 +74,12 @@ namespace TGC.MonoGame.TP {
         public virtual void Draw(Matrix view, Matrix projection, Effect effect) {}
         public void DrawBoundingBox(Gizmos.Gizmos gizmos)
         {
-            gizmos.DrawCube((_boundingBox.Max + _boundingBox.Min) / 2f, _boundingBox.Max - _boundingBox.Min, Color.Red);
+            gizmos.DrawCube((_boundingBoxPrecalc.Max + _boundingBoxPrecalc.Min) / 2f, _boundingBoxPrecalc.Max - _boundingBoxPrecalc.Min, Color.Red);
+            gizmos.DrawCube((_boundingBoxCalc.Max + _boundingBoxCalc.Min) / 2f, _boundingBoxCalc.Max - _boundingBoxCalc.Min, Color.Blue);
+            gizmos.DrawCylinder(_boundingCylinderPrecalc.Transform, Color.Yellow);
+            gizmos.DrawCylinder(_boundingCylinderCalc.Transform, Color.White);
         }
+
         public void DrawPosition(Gizmos.Gizmos gizmos)
         {
             gizmos.DrawSphere(_position, Vector3.One, Color.White);
